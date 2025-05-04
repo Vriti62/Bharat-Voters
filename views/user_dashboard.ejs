@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard</title>
+</head>
+<body>
+    <h1>Vote for Your Candidate</h1>
+    <form action="/candidate/vote/candidates" method="POST">
+        <ul>
+            <% candidates.forEach(candidate => { %>
+                <li>
+                    <input type="radio" id="<%= candidate._id %>" name="name" value="<%= candidate.name %>" required>
+                    <label for="<%= candidate._id %>"><%= candidate.name %> - <%= candidate.party %></label>
+                </li>
+            <% }) %>
+        </ul>
+        <button type="submit">Vote</button>
+    </form>
+</body>
+</html>

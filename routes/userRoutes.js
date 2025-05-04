@@ -6,33 +6,32 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 // route to home page
-router.get('/home',  verifyToken , async (req, res) => {
+router.get('/home', verifyToken, async (req, res) => {
     try {
-        const decoded = jwt.verify(req.session.token, process.env.JWT_SECRET);
-        const user = await User.findById(decoded.userId);
+        const user = await User.findById(req.user.userId); // Use `req.user.userId` from the middleware
+        if (!user) {
+            return res.redirect('/user/login');
+        }
         res.render('loggedhome', { user });
-      } catch (err) {
+    } catch (err) {
         console.error(err);
-        res.redirect('/user/login');
-      }
-  });
+        res.status(500).send('Internal Server Error');
+    }
+});
 
 // POST route to add a person
 router.get('/signup', (req, res) => {
-    res.render('signup');
-  });
+    res.render('signup'); // Signup page
+});
   
-router.post('/signup', async (req, res) =>{
-    try{
-        const data = req.body // Assuming the request body contains the User data
+router.post('/signup', async (req, res) => {
+    try {
+        const data = req.body;
 
-        // Check if there is already an admin user
-        const adminUser = await User.findOne({ role: 'admin' });
-        if (data.role === 'admin' && adminUser) {
-            return res.status(400).json({ error: 'Admin user already exists' });
-        }
+        // Force the role to be 'voter'
+        data.role = 'voter';
 
-        // Validate Aadhar Card Number must have exactly 12 digit
+        // Validate Aadhar Card Number must have exactly 12 digits
         if (!/^\d{12}$/.test(data.aadharCardNumber)) {
             return res.status(400).json({ error: 'Aadhar Card Number must be exactly 12 digits' });
         }
@@ -48,50 +47,43 @@ router.post('/signup', async (req, res) =>{
 
         // Save the new user to the database
         const response = await newUser.save();
-        console.log('data saved');
-
-        const payload = {
-            id: response.id
-        }
-        console.log(JSON.stringify(payload));
-        // const token = generateToken(payload);
+        console.log('User registered successfully');
         res.send('Account created successfully');
-        // res.status(200).json({response: response, token: token});
-    }
-    catch(err){
+    } catch (err) {
         console.log(err);
-        res.status(500).json({error: 'Internal Server Error'});
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 })
 
 // Login Route
 router.get('/login', (req, res) => {
-    res.render('login');
-  });
+    res.render('login'); // Login page
+});
   
-router.post('/login', async(req, res) => {
-    try{
-        // Extract aadharCardNumber and password from request body
-        const {aadharCardNumber, password} = req.body;
+router.post('/login', async (req, res) => {
+    try {
+        const { aadharCardNumber, password } = req.body;
 
-        // Check if aadharCardNumber or password is missing
         if (!aadharCardNumber || !password) {
             return res.status(400).json({ error: 'Aadhar Card Number and password are required' });
         }
 
-        // Find the user by aadharCardNumber
-        const user = await User.findOne({aadharCardNumber: aadharCardNumber});
+        const user = await User.findOne({ aadharCardNumber });
 
-        // If user does not exist or password does not match, return error
         if (user && (await bcrypt.compare(password, user.password))) {
-            const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+            const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
             req.session.token = token;
-            res.redirect('/user/home');
-          } else {
+
+            // Redirect based on role
+            if (user.role === 'admin') {
+                return res.redirect('/admin/dashboard');
+            } else {
+                return res.redirect('/bharatvoter');
+            }
+        } else {
             res.redirect('/user/login');
-          }
-        
-    }catch(err){
+        }
+    } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Internal Server Error' });
     }
@@ -100,24 +92,17 @@ router.post('/login', async(req, res) => {
 // about route
 
 router.get('/about' , (req, res) => {
-        res.render('aboutpage');
+    res.render('aboutpage'); // About page
 });
 
 // process route
 router.get('/process' , (req, res) => {
-    res.render('Process');
+    res.render('Process'); // Process page
 });
 // Profile route
 
 router.get('/profile',verifyToken ,async (req, res) => {
-    try {
-        const decoded = jwt.verify(req.session.token, process.env.JWT_SECRET);
-        const user = await User.findById(decoded.userId);
-        res.render('profile', { user });
-      } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Internal Server Error' });
-      }
+    res.render('profile', { user }); // User profile page
 })
 
 router.put('/profile/password', verifyToken, async (req, res) => {
@@ -155,9 +140,28 @@ router.get('/logout', (req, res) => {
     res.redirect('/bharatvoter');
   });
   
-  function verifyToken(req, res, next) {
+function verifyToken(req, res, next) {
     const token = req.session.token;
-    if (!token) return res.redirect('/user/login');
-    next();
-  }
-module.exports = router;
+    if (!token) return res.redirect('/user/login'); // Redirect if no token is found
+
+    try {
+        // Verify the token and decode it
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // Attach the decoded user information to the request object
+        req.user = decoded;
+
+        next(); // Proceed to the next middleware or route handler
+    } catch (err) {
+        console.error('Token verification failed:', err);
+        res.redirect('/user/login'); // Redirect if token verification fails
+    }
+}
+
+module.exports = router; // Export only the router by default
+module.exports.verifyToken = verifyToken; // Export verifyToken separately
+
+// filepath: c:\Users\jaitl\Documents\ONLINE-VOTING-SYSTEM\Bharat-Voters\server.js
+
+// const userRoutes = require('./routes/userRoutes'); // Import the router
+// const { verifyToken } = require('./routes/userRoutes'); // Import verifyToken separately
