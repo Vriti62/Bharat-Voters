@@ -9,8 +9,9 @@ app.use(session({ secret: 'secret', resave: true, saveUninitialized: true }));
 app.set('view engine', 'ejs');
 const bodyParser = require('body-parser'); 
 app.use(bodyParser.json()); // req.body
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;  // Changed from 3000 to 7000
 const router = express.Router();
+const User = require('./models/user'); // Import the User model
 
 // Import the verifyToken middleware
 const { verifyToken } = require('./routes/userRoutes'); // Import from userRoutes.js
@@ -37,6 +38,7 @@ const adminRoutes = require('./routes/adminRoutes');
 // Use the routers
 app.use('/user', userRoutes);
 app.use('/candidate', candidateRoutes);
+app.use('/candidate', candidateRoutes);
 app.use('/admin', adminRoutes);
 
 app.get('/bharatvoter', async (req, res) => {
@@ -52,5 +54,5 @@ app.get('/about??', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log('listening on port 7000');
+    console.log(`listening on port ${PORT}`);  // Use template literal to show actual port
 });

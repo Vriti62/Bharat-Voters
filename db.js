@@ -32,19 +32,38 @@ db.on('disconnected', () => {
 // Function to create admin user
 const createAdminUser = async () => {
     const User = require('./models/user');
-    const adminExists = await User.findOne({ role: 'admin' });
-    if (!adminExists) {
-        const admin = new User({
-            name: 'Admin',
-            age: 30,
-            email: 'admin@example.com',
-            address: 'Admin Address',
-            aadharCardNumber: 123456789012,
-            password: 'adminpassword',
-            role: 'admin',
-        });
-        await admin.save();
-        console.log('Admin user created');
+    try {
+        // First check if admin exists by role
+        const adminExists = await User.findOne({ role: 'admin' });
+        if (!adminExists) {
+            // Then check if the Aadhar number is already in use
+            const aadharExists = await User.findOne({ aadharCardNumber: 999999999999 });
+            if (aadharExists) {
+                // If Aadhar exists but user is not admin, update the role
+                aadharExists.role = 'admin';
+                await aadharExists.save();
+                console.log('Existing user updated to admin role');
+            } else {
+                // Create new admin if neither exists
+                const admin = new User({
+                    name: 'Admin',
+                    age: 30,
+                    email: 'admin@bharatvoters.com',
+                    mobile: '9999999999',
+                    address: 'Bharat Voters HQ, New Delhi',
+                    aadharCardNumber: 999999999999,
+                    password: 'adminpassword123',
+                    role: 'admin',
+                    isVoted: false
+                });
+                await admin.save();
+                console.log('New admin user created successfully');
+            }
+        } else {
+            console.log('Admin user already exists');
+        }
+    } catch (err) {
+        console.error('Error in admin user creation:', err);
     }
 };
 

@@ -51,15 +51,14 @@
           <% } %>
       </div>
 
-      <form action="/vote/candidates" method="POST">
-        <ul>
-            <% candidates.forEach(candidate => { %>
-                <li>
-                    <input type="radio" id="<%= candidate._id %>" name="name" value="<%= candidate.name %>" required>
-                    <label for="<%= candidate._id %>"><%= candidate.name %> - <%= candidate.party %></label>
-                </li>
-            <% }) %>
-        </ul>
+      <form action="/candidate/vote/candidates" method="POST">
+        <% candidates.forEach(candidate => { %>
+            <div class="radio-item">
+                <input type="radio" name="name" value="<%= candidate.name %>" required>
+                <label><%= candidate.name %> - <%= candidate.party %></label>
+            </div>
+        <% }); %>
+        <input type="text" name="aadharCardNumber" placeholder="Enter your Aadhar Number" required>
         <button type="submit">Vote</button>
     </form>
       <div style="display: flex; padding: 25px; justify-content: center; align-items: center; background-color: rgb(5, 24, 45);">

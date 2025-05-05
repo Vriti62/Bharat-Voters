@@ -26,34 +26,35 @@ router.get('/signup', (req, res) => {
   
 router.post('/signup', async (req, res) => {
     try {
-        const data = req.body;
-
-        // Force the role to be 'voter'
-        data.role = 'voter';
-
-        // Validate Aadhar Card Number must have exactly 12 digits
-        if (!/^\d{12}$/.test(data.aadharCardNumber)) {
-            return res.status(400).json({ error: 'Aadhar Card Number must be exactly 12 digits' });
-        }
-
-        // Check if a user with the same Aadhar Card Number already exists
-        const existingUser = await User.findOne({ aadharCardNumber: data.aadharCardNumber });
+        // Check if user already exists with this email
+        const existingUser = await User.findOne({ email: req.body.email });
         if (existingUser) {
-            return res.status(400).json({ error: 'User with the same Aadhar Card Number already exists' });
+            return res.status(400).send('Email already registered. Please login or use a different email.');
         }
 
-        // Create a new User document using the Mongoose model
-        const newUser = new User(data);
+        // Check if Aadhar number already exists
+        const existingAadhar = await User.findOne({ aadharCardNumber: req.body.aadharCardNumber });
+        if (existingAadhar) {
+            return res.status(400).send('Aadhar card number already registered. Please login or contact support.');
+        }
 
-        // Save the new user to the database
-        const response = await newUser.save();
+        // Create new user if validation passes
+        const user = new User(req.body);
+        await user.save();
+        
         console.log('User registered successfully');
-        res.send('Account created successfully');
+        res.redirect('/user/login');
     } catch (err) {
-        console.log(err);
-        res.status(500).json({ error: 'Internal Server Error' });
+        console.error('Registration error:', err);
+        if (err.code === 11000) {
+            // Handle duplicate key errors
+            const field = Object.keys(err.keyPattern)[0];
+            res.status(400).send(`${field.charAt(0).toUpperCase() + field.slice(1)} already exists. Please use a different ${field}.`);
+        } else {
+            res.status(500).send('Error during registration. Please try again.');
+        }
     }
-})
+});
 
 // Login Route
 router.get('/login', (req, res) => {

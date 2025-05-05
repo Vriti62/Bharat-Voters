@@ -12,7 +12,8 @@ const userSchema = new mongoose.Schema({
         required: true
     },
     email: {
-        type: String
+        type: String,
+        unique: true  // Add unique constraint
     },
     mobile: {
         type: String
@@ -24,7 +25,7 @@ const userSchema = new mongoose.Schema({
     aadharCardNumber: {
         type: Number,
         required: true,
-        unqiue: true
+        unique: true  // Make sure this is unique
     },
     password: {
         type: String,
